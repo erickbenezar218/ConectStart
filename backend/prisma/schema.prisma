@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SCHEDULED
+  INSTALLED
+  CANCELLED
+}
+
+enum ContractType {
+  FIDELITY
+  NO_FIDELITY
+}
+
+enum SchedulePeriod {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Personal Data
+  fullName  String
+  cpf       String   @unique
+  email     String
+  phone     String
+  birthDate DateTime?
+  rg        String?
+
+  // Address
+  zipCode      String
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+
+  // Location
+  latitude      Float?
+  longitude     Float?
+  housePhotoUrl String?
+
+  // Plan
+  planId    String?
+  planName  String?
+  planPrice Float?
+  planSpeed String?
+
+  // Contract
+  contractType ContractType
+  billingDate  Int?
+
+  // Scheduling
+  scheduledDate   DateTime?
+  schedulePeriod  SchedulePeriod?
+  installerNotes  String?
+
+  // WiFi
+  wifiName     String?
+  wifiPassword String?
+
+  // Pricing
+  adhesionFee Float?
+  distanceFee Float?
+  distance    Float?
+  totalSetup  Float?
+
+  // Status
+  status   LeadStatus @default(NEW)
+  notes    String?
+  priority Int        @default(0)
+
+  // Timestamps
+  contactedAt  DateTime?
+  scheduledAt  DateTime?
+  installedAt  DateTime?
+  cancelledAt  DateTime?
+
+  // Audit
+  assignedTo String?
+  source     String?  @default("web")
+
+  statusHistory StatusHistory[]
+
+  @@index([status])
+  @@index([neighborhood])
+  @@index([createdAt])
+}
+
+model StatusHistory {
+  id        String     @id @default(cuid())
+  leadId    String
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromStatus LeadStatus?
+  toStatus  LeadStatus
+  notes     String?
+  changedBy String?
+  createdAt DateTime   @default(now())
+
+  @@index([leadId])
+}
+
+model NeighborhoodRule {
+  id            String   @id @default(cuid())
+  neighborhood  String   @unique
+  adhesionFee   Float
+  isSpecial     Boolean  @default(false)
+  overrideFee   Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
