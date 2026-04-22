@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { getPlans, getBillingDates, clearSGPCache } from '../services/sgpService'
+import { getPlans, getBillingDates, getPops, clearSGPCache } from '../services/sgpService'
 
 export async function listPlans(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -18,6 +18,15 @@ export async function listBillingDates(
   try {
     const dates = await getBillingDates()
     res.json({ success: true, data: dates })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function listPops(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pops = await getPops()
+    res.json({ success: true, data: pops })
   } catch (error) {
     next(error)
   }

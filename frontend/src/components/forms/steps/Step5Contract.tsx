@@ -20,6 +20,8 @@ const CONTRACT_OPTIONS = [
     label: 'Com Fidelidade',
     subtitle: '12 meses de contrato',
     description: 'Menor taxa de instalação. Compromisso de 12 meses.',
+    highlight: '10% de desconto de pontualidade nos planos',
+    highlightColor: 'text-green-700 bg-green-50 border-green-200',
     icon: Shield,
     badge: 'Mais econômico',
     badgeColor: 'bg-green-100 text-green-700',
@@ -29,6 +31,8 @@ const CONTRACT_OPTIONS = [
     label: 'Sem Fidelidade',
     subtitle: 'Livre para cancelar',
     description: 'Sem compromisso. Cancele quando quiser.',
+    highlight: 'Planos pelo valor cheio — sem desconto de pontualidade',
+    highlightColor: 'text-amber-700 bg-amber-50 border-amber-200',
     icon: Zap,
     badge: 'Mais flexível',
     badgeColor: 'bg-blue-100 text-blue-700',
@@ -60,6 +64,16 @@ export default function Step5Contract({ formData, updateForm, onNext, onBack }: 
 
   const canNext = formData.contractType !== ''
 
+  const handleContractChange = (value: ContractType) => {
+    const base = formData.planBasePrice
+    const update: Partial<typeof formData> = { contractType: value }
+    // Se já escolheu um plano, recalcula o planPrice para o novo tipo de contrato
+    if (base !== null) {
+      update.planPrice = value === 'FIDELITY' ? base * 0.9 : base
+    }
+    updateForm(update)
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 mb-6">
@@ -73,13 +87,13 @@ export default function Step5Contract({ formData, updateForm, onNext, onBack }: 
       </div>
 
       <div className="grid gap-3">
-        {CONTRACT_OPTIONS.map(({ value, label, subtitle, description, icon: Icon, badge, badgeColor }) => {
+        {CONTRACT_OPTIONS.map(({ value, label, subtitle, description, highlight, highlightColor, icon: Icon, badge, badgeColor }) => {
           const selected = formData.contractType === value
           return (
             <button
               key={value}
               type="button"
-              onClick={() => updateForm({ contractType: value })}
+              onClick={() => handleContractChange(value)}
               className={cn(
                 'w-full p-4 rounded-xl border-2 text-left transition-all',
                 selected
@@ -105,6 +119,9 @@ export default function Step5Contract({ formData, updateForm, onNext, onBack }: 
                   </div>
                   <p className="text-xs text-primary font-medium mt-0.5">{subtitle}</p>
                   <p className="text-xs text-muted-foreground mt-1">{description}</p>
+                  <p className={cn('text-xs font-semibold mt-2 px-2 py-1 rounded border', highlightColor)}>
+                    {highlight}
+                  </p>
                 </div>
               </div>
             </button>

@@ -1,15 +1,32 @@
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
+
+# ── build ──────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# NEXT_PUBLIC_API_URL é passado como build arg no EasyPanel
+# Ex: https://api.seudominio.com/api
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
-FROM node:18-alpine AS runner
+# ── runner (standalone — imagem mínima) ───────────────────
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY --from=builder /app/public               ./public
+COPY --from=builder /app/.next/standalone     ./
+COPY --from=builder /app/.next/static         ./.next/static
+
 EXPOSE 3000
+
 CMD ["node", "server.js"]

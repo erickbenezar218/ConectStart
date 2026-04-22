@@ -11,29 +11,32 @@ import Step4Plan from './steps/Step4Plan'
 import Step5Contract from './steps/Step5Contract'
 import Step6Schedule from './steps/Step6Schedule'
 import Step7Wifi from './steps/Step7Wifi'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import Step8Terms from './steps/Step8Terms'
+import { CheckCircle2 } from 'lucide-react'
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 8
 
 const STEPS = [
   { label: 'Dados Pessoais' },
   { label: 'Endereço' },
   { label: 'Localização' },
-  { label: 'Plano' },
   { label: 'Contrato' },
+  { label: 'Plano' },
   { label: 'Agendamento' },
   { label: 'Wi-Fi' },
+  { label: 'Confirmação' },
 ]
 
 const initialData: FormData = {
   fullName: '', cpf: '', email: '', phone: '', birthDate: '', rg: '',
-  zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
+  zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', referencePoint: '',
   housePhotoUrl: '', latitude: null, longitude: null,
-  planId: '', planName: '', planPrice: null, planSpeed: '', billingDate: null,
+  planId: '', planName: '', planPrice: null, planBasePrice: null, planSpeed: '', billingDate: null,
   contractType: '',
   scheduledDate: '', schedulePeriod: '',
   wifiName: '', wifiPassword: '',
   distance: null,
+  termsAccepted: false,
 }
 
 export default function MultiStepForm() {
@@ -61,8 +64,8 @@ export default function MultiStepForm() {
         longitude: formData.longitude ?? undefined,
         billingDate: formData.billingDate ?? undefined,
         distance: formData.distance ?? undefined,
-        contractType: formData.contractType as FormData['contractType'],
-        schedulePeriod: formData.schedulePeriod as FormData['schedulePeriod'],
+        contractType: (formData.contractType as 'FIDELITY' | 'NO_FIDELITY') || undefined,
+        schedulePeriod: (formData.schedulePeriod as 'MORNING' | 'AFTERNOON' | 'EVENING') || undefined,
       })
       setIsSuccess(true)
     } catch (err) {
@@ -100,17 +103,20 @@ export default function MultiStepForm() {
     <div className="max-w-2xl mx-auto">
       <FormProgress currentStep={step} totalSteps={TOTAL_STEPS} steps={STEPS} />
 
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden mt-6">
-        <div className="p-6 md:p-8 animate-fade-in" key={step}>
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden mt-4 md:mt-6">
+        <div className="p-4 sm:p-6 md:p-8 animate-fade-in" key={step}>
           {step === 1 && <Step1Personal {...stepProps} />}
           {step === 2 && <Step2Address {...stepProps} />}
           {step === 3 && <Step3Photo {...stepProps} />}
-          {step === 4 && <Step4Plan {...stepProps} />}
-          {step === 5 && <Step5Contract {...stepProps} />}
+          {step === 4 && <Step5Contract {...stepProps} />}
+          {step === 5 && <Step4Plan {...stepProps} />}
           {step === 6 && <Step6Schedule {...stepProps} />}
-          {step === 7 && (
-            <Step7Wifi
-              {...stepProps}
+          {step === 7 && <Step7Wifi {...stepProps} onSubmit={nextStep} isSubmitting={false} />}
+          {step === 8 && (
+            <Step8Terms
+              formData={formData}
+              updateForm={updateForm}
+              onBack={prevStep}
               onSubmit={handleSubmit}
               isSubmitting={isSubmitting}
             />

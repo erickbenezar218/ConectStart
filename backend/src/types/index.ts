@@ -19,6 +19,7 @@ export interface CreateLeadDTO {
   neighborhood: string
   city: string
   state: string
+  referencePoint?: string
 
   // Location
   latitude?: number

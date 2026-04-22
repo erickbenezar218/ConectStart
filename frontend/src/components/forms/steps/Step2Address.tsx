@@ -1,12 +1,14 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { step2Schema, Step2Data } from '@/lib/validations'
-import { FormData } from '@/types'
+import { z } from 'zod'
+import { FormData, SGPPop } from '@/types'
+import { plansApi } from '@/lib/api'
 import { formatCEP, fetchCEP } from '@/lib/utils'
-import { MapPin, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { MapPin, ChevronLeft, ChevronRight, Loader2, ChevronDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Props {
   formData: FormData
@@ -15,31 +17,58 @@ interface Props {
   onBack: () => void
 }
 
+const schema = z.object({
+  neighborhood: z.string().min(2, 'Selecione o bairro/comunidade'),
+  referencePoint: z.string().optional(),
+  zipCode: z.string().min(8, 'CEP inválido'),
+  street: z.string().min(3, 'Logradouro inválido'),
+  number: z.string().min(1, 'Número obrigatório'),
+  complement: z.string().optional(),
+  city: z.string().min(2, 'Cidade inválida'),
+  state: z.string().length(2, 'UF inválida'),
+})
+
+type FormValues = z.infer<typeof schema>
+
 const STATES = [
   'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
   'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
 ]
 
 export default function Step2Address({ formData, updateForm, onNext, onBack }: Props) {
+  const [pops, setPops] = useState<SGPPop[]>([])
+  const [loadingPops, setLoadingPops] = useState(true)
   const [loadingCEP, setLoadingCEP] = useState(false)
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
-  } = useForm<Step2Data>({
-    resolver: zodResolver(step2Schema),
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
+      neighborhood: formData.neighborhood,
+      referencePoint: formData.referencePoint,
       zipCode: formData.zipCode,
       street: formData.street,
       number: formData.number,
       complement: formData.complement,
-      neighborhood: formData.neighborhood,
       city: formData.city,
       state: formData.state,
     },
   })
+
+  const selectedNeighborhood = watch('neighborhood')
+
+  // Load POPs from SGP
+  useEffect(() => {
+    plansApi.getPops()
+      .then(setPops)
+      .catch(() => {}) // fail silently, user can type manually
+      .finally(() => setLoadingPops(false))
+  }, [])
 
   const handleCEP = async (value: string) => {
     const formatted = formatCEP(value)
@@ -49,7 +78,6 @@ export default function Step2Address({ formData, updateForm, onNext, onBack }: P
       const data = await fetchCEP(formatted)
       if (data) {
         setValue('street', data.logradouro)
-        setValue('neighborhood', data.bairro)
         setValue('city', data.localidade)
         setValue('state', data.uf)
       }
@@ -57,8 +85,11 @@ export default function Step2Address({ formData, updateForm, onNext, onBack }: P
     }
   }
 
-  const onSubmit = (data: Step2Data) => {
-    updateForm(data)
+  const onSubmit = (data: FormValues) => {
+    updateForm({
+      ...data,
+      referencePoint: data.referencePoint || '',
+    })
     onNext()
   }
 
@@ -74,7 +105,73 @@ export default function Step2Address({ formData, updateForm, onNext, onBack }: P
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* ── Bairro / Comunidade (POP) ── PRIMEIRO CAMPO */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">
+          Bairro / Comunidade atendida *
+        </label>
+
+        {loadingPops ? (
+          <div className="flex items-center gap-2 h-11 px-3 border border-gray-200 rounded-lg text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Carregando bairros...
+          </div>
+        ) : pops.length > 0 ? (
+          <div className="relative">
+            <select
+              {...register('neighborhood')}
+              onChange={(e) => {
+                setValue('neighborhood', e.target.value)
+                updateForm({ neighborhood: e.target.value })
+              }}
+              className={cn(
+                'w-full h-11 px-3 pr-8 border rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors',
+                errors.neighborhood ? 'border-red-400' : 'border-gray-200',
+                !selectedNeighborhood && 'text-gray-400'
+              )}
+            >
+              <option value="">Selecione o bairro/comunidade</option>
+              {pops.map((p) => (
+                <option key={p.id} value={p.nome}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+        ) : (
+          // Fallback: free text if API failed
+          <input
+            {...register('neighborhood')}
+            onChange={(e) => {
+              setValue('neighborhood', e.target.value)
+              updateForm({ neighborhood: e.target.value })
+            }}
+            className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            placeholder="Nome do bairro ou comunidade"
+          />
+        )}
+        {errors.neighborhood && (
+          <p className="text-xs text-red-500">{errors.neighborhood.message}</p>
+        )}
+      </div>
+
+      {/* ── Ponto de referência ── */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">
+          Ponto de referência
+        </label>
+        <input
+          {...register('referencePoint')}
+          className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          placeholder="Ex: Em frente ao mercado X, perto da escola Y..."
+        />
+        <p className="text-xs text-muted-foreground">
+          Ajuda nossa equipe a chegar mais facilmente
+        </p>
+      </div>
+
+      <div className="border-t pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* CEP */}
         <div className="space-y-1">
           <label className="text-sm font-medium text-gray-700">CEP *</label>
@@ -122,19 +219,6 @@ export default function Step2Address({ formData, updateForm, onNext, onBack }: P
             className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             placeholder="Apto, Bloco..."
           />
-        </div>
-
-        {/* Bairro */}
-        <div className="sm:col-span-2 space-y-1">
-          <label className="text-sm font-medium text-gray-700">Bairro *</label>
-          <input
-            {...register('neighborhood')}
-            className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            placeholder="Centro"
-          />
-          {errors.neighborhood && (
-            <p className="text-xs text-red-500">{errors.neighborhood.message}</p>
-          )}
         </div>
 
         {/* Estado */}

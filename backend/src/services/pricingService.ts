@@ -1,58 +1,51 @@
 import { prisma } from '../config/database'
 import { PricingCalculationRequest, PricingCalculationResult } from '../types'
 
-const DISTANCE_FREE_THRESHOLD = 150 // meters
-const DISTANCE_BASE_FEE = 50 // R$50 up to 150m
-const DISTANCE_EXTRA_PER_METER = 1 // R$1 per extra meter
-const DEFAULT_ADHESION_FEE = 100 // fallback
+const DISTANCE_FREE_THRESHOLD = 150  // meters
+const DISTANCE_BASE_FEE = 50         // R$50 up to 150m
+const DISTANCE_EXTRA_PER_METER = 1   // R$1 per extra meter
+
+// Adhesion fee rules
+const ADHESION_FIDELITY_DEFAULT = 50    // fidelidade padrão
+const ADHESION_FIDELITY_SPECIAL = 100   // fidelidade bairros especiais
+const ADHESION_NO_FIDELITY = 300        // sem fidelidade (qualquer bairro)
+
+// Neighborhoods that cost R$100 with fidelity (match substring, case-insensitive)
+const SPECIAL_FIDELITY_NEIGHBORHOODS = [
+  'BELA VISTA',
+  'MAIAPOLIS',
+  'FÉ EM DEUS',
+  'FE EM DEUS', // without accent fallback
+]
 
 export async function calculatePricing(
   req: PricingCalculationRequest
 ): Promise<PricingCalculationResult> {
-  const { neighborhood, distance } = req
+  const { neighborhood, distance, contractType } = req
 
-  // 1. Get neighborhood rule from DB (or use default)
-  const rule = await prisma.neighborhoodRule.findFirst({
-    where: {
-      neighborhood: {
-        equals: neighborhood,
-        mode: 'insensitive',
-      },
-    },
-  })
-
-  // Adhesion fee logic
-  let adhesionFee = DEFAULT_ADHESION_FEE
+  let adhesionFee: number
   let isSpecialNeighborhood = false
   let notes: string | undefined
 
-  if (rule) {
-    isSpecialNeighborhood = rule.isSpecial
-    if (rule.isSpecial && rule.overrideFee !== null && rule.overrideFee !== undefined) {
-      adhesionFee = rule.overrideFee
-      notes = rule.notes ?? undefined
-    } else {
-      adhesionFee = rule.adhesionFee
-    }
+  if (contractType === 'NO_FIDELITY') {
+    adhesionFee = ADHESION_NO_FIDELITY
+    notes = 'Taxa sem fidelidade'
+  } else {
+    // FIDELITY — check if special neighborhood
+    const neighborhoodUpper = neighborhood.toUpperCase()
+    isSpecialNeighborhood = SPECIAL_FIDELITY_NEIGHBORHOODS.some((s) =>
+      neighborhoodUpper.includes(s.toUpperCase())
+    )
+    adhesionFee = isSpecialNeighborhood ? ADHESION_FIDELITY_SPECIAL : ADHESION_FIDELITY_DEFAULT
   }
 
-  // 2. Distance fee
   const distanceFee = calculateDistanceFee(distance)
-
-  // 3. Total
   const totalSetup = adhesionFee + distanceFee
 
-  // 4. Breakdown
   const breakdown: { label: string; value: number }[] = []
-
-  if (adhesionFee > 0) {
-    breakdown.push({ label: 'Taxa de adesão', value: adhesionFee })
-  }
+  breakdown.push({ label: 'Taxa de adesão', value: adhesionFee })
   if (distanceFee > 0) {
-    breakdown.push({ label: 'Taxa de distância', value: distanceFee })
-  }
-  if (breakdown.length === 0) {
-    breakdown.push({ label: 'Instalação gratuita', value: 0 })
+    breakdown.push({ label: `Taxa de distância (${distance}m)`, value: distanceFee })
   }
 
   return {
@@ -68,14 +61,11 @@ export async function calculatePricing(
 export function calculateDistanceFee(distance?: number): number {
   if (!distance || distance <= 0) return 0
   if (distance <= DISTANCE_FREE_THRESHOLD) return DISTANCE_BASE_FEE
-  const extra = distance - DISTANCE_FREE_THRESHOLD
-  return DISTANCE_BASE_FEE + extra * DISTANCE_EXTRA_PER_METER
+  return DISTANCE_BASE_FEE + (distance - DISTANCE_FREE_THRESHOLD) * DISTANCE_EXTRA_PER_METER
 }
 
 export async function getNeighborhoodRules() {
-  return prisma.neighborhoodRule.findMany({
-    orderBy: { neighborhood: 'asc' },
-  })
+  return prisma.neighborhoodRule.findMany({ orderBy: { neighborhood: 'asc' } })
 }
 
 export async function upsertNeighborhoodRule(data: {

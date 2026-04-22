@@ -41,14 +41,18 @@ export const step5Schema = z.object({
 
 export const step6Schema = z.object({
   scheduledDate: z.string().min(1, 'Selecione uma data'),
-  schedulePeriod: z.enum(['MORNING', 'AFTERNOON', 'EVENING'], {
+  schedulePeriod: z.enum(['MORNING', 'AFTERNOON'], {
     required_error: 'Selecione um período',
   }),
 })
 
 export const step7Schema = z.object({
   wifiName: z.string().min(1, 'Nome do Wi-Fi obrigatório'),
-  wifiPassword: z.string().min(8, 'Senha deve ter ao menos 8 caracteres'),
+  wifiPassword: z
+    .string()
+    .min(8, 'Senha deve ter ao menos 8 caracteres')
+    .regex(/[A-Z]/, 'Deve conter ao menos uma letra maiúscula')
+    .regex(/[a-z]/, 'Deve conter ao menos uma letra minúscula'),
 })
 
 export type Step1Data = z.infer<typeof step1Schema>

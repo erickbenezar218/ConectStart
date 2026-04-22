@@ -7,6 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  COMERCIAL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(COMERCIAL)
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdBy String?
+
+  @@index([email])
+  @@index([role])
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -40,13 +63,14 @@ model Lead {
   rg        String?
 
   // Address
-  zipCode      String
-  street       String
-  number       String
-  complement   String?
-  neighborhood String
-  city         String
-  state        String
+  zipCode         String
+  street          String
+  number          String
+  complement      String?
+  neighborhood    String
+  city            String
+  state           String
+  referencePoint  String?
 
   // Location
   latitude      Float?

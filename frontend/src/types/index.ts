@@ -23,6 +23,7 @@ export interface Lead {
   neighborhood: string
   city: string
   state: string
+  referencePoint?: string
 
   // Location
   latitude?: number
@@ -79,6 +80,12 @@ export interface StatusHistoryEntry {
   notes?: string
   changedBy?: string
   createdAt: string
+}
+
+export interface SGPPop {
+  id: number
+  nome: string
+  original: string
 }
 
 export interface Plan {
@@ -145,6 +152,7 @@ export interface FormData {
   neighborhood: string
   city: string
   state: string
+  referencePoint: string
 
   // Step 3 - Photo & Location
   housePhotoUrl: string
@@ -154,7 +162,8 @@ export interface FormData {
   // Step 4 - Plan
   planId: string
   planName: string
-  planPrice: number | null
+  planPrice: number | null      // valor que será cobrado (com ou sem desconto)
+  planBasePrice: number | null  // valor original do plano (sem desconto algum)
   planSpeed: string
   billingDate: number | null
 
@@ -171,6 +180,9 @@ export interface FormData {
 
   // Pricing
   distance: number | null
+
+  // Terms
+  termsAccepted: boolean
 }
 
 export const STATUS_LABELS: Record<LeadStatus, string> = {

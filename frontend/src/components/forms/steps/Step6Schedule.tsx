@@ -1,10 +1,10 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { step6Schema, Step6Data } from '@/lib/validations'
 import { FormData, SchedulePeriod } from '@/types'
-import { Calendar, ChevronLeft, ChevronRight, Sun, Sunset, Moon } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Sun, Sunset } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -16,8 +16,7 @@ interface Props {
 
 const PERIODS: { value: SchedulePeriod; label: string; time: string; icon: typeof Sun }[] = [
   { value: 'MORNING', label: 'Manhã', time: '08h - 12h', icon: Sun },
-  { value: 'AFTERNOON', label: 'Tarde', time: '12h - 18h', icon: Sunset },
-  { value: 'EVENING', label: 'Noite', time: '18h - 21h', icon: Moon },
+  { value: 'AFTERNOON', label: 'Tarde', time: '13h - 18h', icon: Sunset },
 ]
 
 // Minimum date: tomorrow
@@ -36,11 +35,11 @@ export default function Step6Schedule({ formData, updateForm, onNext, onBack }: 
     resolver: zodResolver(step6Schema),
     defaultValues: {
       scheduledDate: formData.scheduledDate,
-      schedulePeriod: formData.schedulePeriod as SchedulePeriod || undefined,
+      schedulePeriod: (formData.schedulePeriod || undefined) as 'MORNING' | 'AFTERNOON' | undefined,
     },
   })
 
-  const onSubmit = (data: Step6Data) => {
+  const onSubmit: SubmitHandler<Step6Data> = (data) => {
     updateForm(data)
     onNext()
   }
@@ -74,7 +73,7 @@ export default function Step6Schedule({ formData, updateForm, onNext, onBack }: 
       {/* Period */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">Período preferido *</label>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {PERIODS.map(({ value, label, time, icon: Icon }) => {
             const selected = formData.schedulePeriod === value
             return (

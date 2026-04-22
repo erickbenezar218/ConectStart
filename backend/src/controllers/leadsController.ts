@@ -32,6 +32,7 @@ export async function createLead(req: Request, res: Response, next: NextFunction
         neighborhood: body.neighborhood,
         city: body.city,
         state: body.state,
+        referencePoint: body.referencePoint,
         latitude: body.latitude,
         longitude: body.longitude,
         housePhotoUrl: body.housePhotoUrl,
@@ -276,9 +277,89 @@ export async function getStats(req: Request, res: Response, next: NextFunction):
 
     res.json({
       success: true,
+      data: { total, byStatus: statusMap, recentLeads },
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function getDashboardStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    const next7Days = new Date(now)
+    next7Days.setDate(now.getDate() + 7)
+
+    const [
+      totalLeads,
+      byStatus,
+      newThisMonth,
+      installedThisMonth,
+      upcomingInstalls,
+      byNeighborhood,
+      byContractType,
+      recentLeads,
+    ] = await Promise.all([
+      prisma.lead.count(),
+      prisma.lead.groupBy({ by: ['status'], _count: { status: true } }),
+      prisma.lead.count({ where: { createdAt: { gte: startOfMonth } } }),
+      prisma.lead.count({ where: { status: 'INSTALLED', installedAt: { gte: startOfMonth } } }),
+      prisma.lead.findMany({
+        where: {
+          status: 'SCHEDULED',
+          scheduledDate: { gte: now, lte: next7Days },
+        },
+        orderBy: { scheduledDate: 'asc' },
+        take: 10,
+        select: {
+          id: true, fullName: true, phone: true, neighborhood: true,
+          scheduledDate: true, schedulePeriod: true, planName: true,
+        },
+      }),
+      prisma.lead.groupBy({
+        by: ['neighborhood'],
+        _count: { neighborhood: true },
+        orderBy: { _count: { neighborhood: 'desc' } },
+        take: 8,
+      }),
+      prisma.lead.groupBy({ by: ['contractType'], _count: { contractType: true } }),
+      prisma.lead.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        select: {
+          id: true, fullName: true, neighborhood: true, planName: true,
+          status: true, createdAt: true, contractType: true,
+        },
+      }),
+    ])
+
+    const statusMap = Object.fromEntries(byStatus.map((s) => [s.status, s._count.status]))
+
+    res.json({
+      success: true,
       data: {
-        total,
+        kpis: {
+          totalLeads,
+          newThisMonth,
+          installedThisMonth,
+          scheduled: statusMap['SCHEDULED'] || 0,
+          conversionRate: totalLeads > 0
+            ? Math.round(((statusMap['INSTALLED'] || 0) / totalLeads) * 100)
+            : 0,
+        },
         byStatus: statusMap,
+        upcomingInstalls,
+        byNeighborhood: byNeighborhood.map((n) => ({
+          name: n.neighborhood,
+          total: n._count.neighborhood,
+        })),
+        byContractType: byContractType.map((c) => ({
+          type: c.contractType,
+          total: c._count.contractType,
+        })),
         recentLeads,
       },
     })

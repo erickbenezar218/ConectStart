@@ -24,6 +24,11 @@
     --input: 220 13% 91%;
     --ring: 240 100% 50%;
     --radius: 0.5rem;
+    /* Safe area insets (iOS notch / Dynamic Island / home indicator) */
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
   }
 
   .dark {
@@ -52,28 +57,101 @@
 @layer base {
   * {
     @apply border-border;
+    /* Remove tap highlight on iOS/Android */
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent 300ms tap delay */
+    touch-action: manipulation;
   }
+
+  html {
+    /* Prevent font scaling on orientation change (iOS) */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* Home indicator safe area (iPhone) */
+    padding-bottom: env(safe-area-inset-bottom);
+    /* Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+  }
+
+  /*
+    CRITICAL — iOS Safari auto-zooms when input font-size < 16px.
+    All inputs/selects/textareas must be at least 16px on mobile.
+    We keep the visual size with transform scale on the parent if needed,
+    but the simplest fix is to force 16px on mobile breakpoints.
+  */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+    /* Smooth tap on mobile */
+    touch-action: manipulation;
+  }
+
+  /* Remove iOS default input styling */
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='password'],
+  input[type='date'],
+  input[type='number'],
+  select,
+  textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0; /* prevent iOS rounding, we set our own */
+  }
+
+  /* Fix date input on iOS — needs explicit height */
+  input[type='date'] {
+    min-height: 44px;
+    line-height: normal;
+  }
+
+  /* Buttons: minimum 44px touch target */
+  button,
+  [role='button'],
+  a {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Exception: small inline buttons that don't need 44px */
+  button.touch-auto {
+    min-height: unset;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/40;
+/* Custom scrollbar (desktop only) */
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
 }
 
 /* Kanban drag styles */
 .kanban-card-dragging {
   @apply opacity-50 rotate-2 scale-105;
+}
+
+/* Sticky header on iOS Safari fix */
+.sticky-header {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  top: env(safe-area-inset-top);
 }

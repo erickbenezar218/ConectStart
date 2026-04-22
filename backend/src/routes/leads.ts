@@ -6,12 +6,14 @@ import {
   updateLeadStatus,
   getKanban,
   getStats,
+  getDashboardStats,
 } from '../controllers/leadsController'
 
 const router = Router()
 
 router.get('/kanban', getKanban)
 router.get('/stats', getStats)
+router.get('/dashboard-stats', getDashboardStats)
 router.get('/', getLeads)
 router.post('/', createLead)
 router.get('/:id', getLeadById)

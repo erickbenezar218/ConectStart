@@ -77,7 +77,7 @@ export default function Step7Wifi({ formData, updateForm, onBack, onSubmit, isSu
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="touch-auto absolute right-3 top-3 text-gray-400 hover:text-gray-600"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -142,20 +142,12 @@ export default function Step7Wifi({ formData, updateForm, onBack, onSubmit, isSu
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="flex items-center gap-2 bg-primary hover:bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 bg-primary hover:bg-primary-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Enviando...
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4" />
-              Enviar Cadastro
-            </>
-          )}
+          <>
+            <Send className="w-4 h-4" />
+            Próximo
+          </>
         </button>
       </div>
     </form>
