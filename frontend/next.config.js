@@ -7,13 +7,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '**', pathname: '/uploads/**' },
     ],
   },
-  async rewrites() {
-    // BACKEND_URL é variável de servidor (não NEXT_PUBLIC) — segura e sem build arg
-    const backend = process.env.BACKEND_URL || 'http://localhost:3001/api'
-    return [
-      { source: '/api/:path*', destination: `${backend}/:path*` },
-    ]
-  },
 }
 
 module.exports = nextConfig
