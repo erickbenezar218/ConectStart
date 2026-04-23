@@ -1,8 +1,14 @@
 import axios from 'axios'
 import { Lead, Plan, BillingDate, SGPPop, PricingResult, KanbanColumn, LeadStatus } from '@/types'
 
+// Em produção o Next.js faz proxy de /api/* para o backend via rewrite.
+// Em desenvolvimento aponta direto para localhost:3001.
+const baseURL = typeof window === 'undefined'
+  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api')
+  : '/api'
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  baseURL,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })

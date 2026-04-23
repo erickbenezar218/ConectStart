@@ -3,18 +3,15 @@ const nextConfig = {
   output: 'standalone',
   images: {
     remotePatterns: [
-      // desenvolvimento local
-      { protocol: 'http', hostname: 'localhost', port: '3001', pathname: '/uploads/**' },
-      // produção — aceita qualquer domínio HTTPS para /uploads/
+      { protocol: 'http',  hostname: 'localhost', port: '3001', pathname: '/uploads/**' },
       { protocol: 'https', hostname: '**', pathname: '/uploads/**' },
     ],
   },
   async rewrites() {
+    // BACKEND_URL é variável de servidor (não NEXT_PUBLIC) — segura e sem build arg
+    const backend = process.env.BACKEND_URL || 'http://localhost:3001/api'
     return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/:path*`,
-      },
+      { source: '/api/:path*', destination: `${backend}/:path*` },
     ]
   },
 }
