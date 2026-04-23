@@ -9,8 +9,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ .
 
-# EasyPanel passa todas as env vars como build args automaticamente
-ARG NEXT_PUBLIC_API_URL
+# URL da API — valor padrão garante funcionamento mesmo sem build arg
+ARG NEXT_PUBLIC_API_URL=https://api.conectplusfibra.com.br/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
