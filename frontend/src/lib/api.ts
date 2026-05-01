@@ -103,6 +103,15 @@ export const leadsApi = {
     return res.data as Lead
   },
 
+  update: async (id: string, data: Partial<Lead>) => {
+    const { data: res } = await api.patch(`/leads/${id}`, data)
+    return res.data as Lead
+  },
+
+  delete: async (id: string) => {
+    await api.delete(`/leads/${id}`)
+  },
+
   getKanban: async () => {
     const { data: res } = await api.get('/leads/kanban')
     return res.data as KanbanColumn[]

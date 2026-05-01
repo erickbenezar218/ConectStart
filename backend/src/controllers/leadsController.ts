@@ -215,6 +215,61 @@ export async function updateLeadStatus(
   }
 }
 
+export async function updateLead(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id } = req.params
+    const body = req.body
+
+    const existing = await prisma.lead.findUnique({ where: { id } })
+    if (!existing) throw new AppError('Lead não encontrado', 404)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: Record<string, any> = {}
+    if (body.fullName !== undefined) data.fullName = body.fullName
+    if (body.cpf !== undefined) data.cpf = body.cpf.replace(/\D/g, '')
+    if (body.email !== undefined) data.email = body.email
+    if (body.phone !== undefined) data.phone = body.phone.replace(/\D/g, '')
+    if (body.rg !== undefined) data.rg = body.rg || null
+    if (body.birthDate !== undefined) data.birthDate = body.birthDate ? new Date(body.birthDate) : null
+    if (body.zipCode !== undefined) data.zipCode = body.zipCode.replace(/\D/g, '')
+    if (body.street !== undefined) data.street = body.street
+    if (body.number !== undefined) data.number = body.number
+    if (body.complement !== undefined) data.complement = body.complement || null
+    if (body.neighborhood !== undefined) data.neighborhood = body.neighborhood
+    if (body.city !== undefined) data.city = body.city
+    if (body.state !== undefined) data.state = body.state
+    if (body.referencePoint !== undefined) data.referencePoint = body.referencePoint || null
+    if (body.planName !== undefined) data.planName = body.planName || null
+    if (body.planPrice !== undefined) data.planPrice = body.planPrice != null && body.planPrice !== '' ? Number(body.planPrice) : null
+    if (body.planSpeed !== undefined) data.planSpeed = body.planSpeed || null
+    if (body.contractType !== undefined) data.contractType = body.contractType
+    if (body.billingDate !== undefined) data.billingDate = body.billingDate != null && body.billingDate !== '' ? Number(body.billingDate) : null
+    if (body.scheduledDate !== undefined) data.scheduledDate = body.scheduledDate ? new Date(body.scheduledDate) : null
+    if (body.schedulePeriod !== undefined) data.schedulePeriod = body.schedulePeriod || null
+    if (body.wifiName !== undefined) data.wifiName = body.wifiName || null
+    if (body.wifiPassword !== undefined) data.wifiPassword = body.wifiPassword || null
+    if (body.notes !== undefined) data.notes = body.notes || null
+
+    const lead = await prisma.lead.update({ where: { id }, data })
+    res.json({ success: true, data: lead })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export async function deleteLead(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id } = req.params
+    const existing = await prisma.lead.findUnique({ where: { id } })
+    if (!existing) throw new AppError('Lead não encontrado', 404)
+
+    await prisma.lead.delete({ where: { id } })
+    res.json({ success: true, message: 'Lead excluído com sucesso' })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export async function getKanban(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const statuses: LeadStatus[] = ['NEW', 'CONTACTED', 'SCHEDULED', 'INSTALLED', 'CANCELLED']

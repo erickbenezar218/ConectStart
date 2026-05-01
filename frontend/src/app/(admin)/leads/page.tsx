@@ -6,8 +6,8 @@ import { leadsApi } from '@/lib/api'
 import { Lead, LeadStatus, STATUS_LABELS, STATUS_COLORS } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import {
-  Search, Filter, Download, ChevronLeft, ChevronRight,
-  Users, Loader2, Eye, ArrowUpDown, X,
+  Search, Download, ChevronLeft, ChevronRight,
+  Users, Loader2, Eye, X, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +46,8 @@ export default function LeadsPage() {
   const [searchInput, setSearchInput] = useState('')
   const [status, setStatus] = useState<LeadStatus | ''>('')
   const [page, setPage] = useState(1)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchLeads = useCallback(async () => {
     setLoading(true)
@@ -79,6 +81,17 @@ export default function LeadsPage() {
   const handleStatusChange = (val: LeadStatus | '') => {
     setStatus(val)
     setPage(1)
+  }
+
+  const handleDelete = async (id: string) => {
+    setDeleting(true)
+    try {
+      await leadsApi.delete(id)
+      setDeleteId(null)
+      fetchLeads()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const exportCSV = () => {
@@ -208,13 +221,41 @@ export default function LeadsPage() {
                       {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('pt-BR') : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Ver
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/leads/${lead.id}`}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Ver
+                        </Link>
+                        {deleteId === lead.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleDelete(lead.id!)}
+                              disabled={deleting}
+                              className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded transition-colors disabled:opacity-40 flex items-center gap-1"
+                            >
+                              {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                              Confirmar
+                            </button>
+                            <button
+                              onClick={() => setDeleteId(null)}
+                              className="text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteId(lead.id!)}
+                            className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:underline"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Excluir
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
