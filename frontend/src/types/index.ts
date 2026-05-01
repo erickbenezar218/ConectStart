@@ -185,6 +185,68 @@ export interface FormData {
   termsAccepted: boolean
 }
 
+// --- Follow-up ---
+
+export type FollowUpType = 'D1_CHECK' | 'D7_FEEDBACK' | 'D30_UPGRADE'
+export type FollowUpStatus = 'PENDING' | 'SENT' | 'FAILED' | 'COMPLETED' | 'SKIPPED'
+
+export interface FollowUp {
+  id: string
+  leadId: string
+  lead?: {
+    id: string
+    fullName: string
+    phone: string
+    planName?: string
+    neighborhood: string
+    installedAt?: string
+  }
+  type: FollowUpType
+  scheduledFor: string
+  sentAt?: string
+  status: FollowUpStatus
+  responseNote?: string
+  retryCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FollowUpStats {
+  pendingTotal: number
+  dueToday: number
+  sentThisWeek: number
+  completed: number
+  failed: number
+}
+
+export const FOLLOWUP_TYPE_LABELS: Record<FollowUpType, string> = {
+  D1_CHECK: 'D+1 Verificação',
+  D7_FEEDBACK: 'D+7 Feedback',
+  D30_UPGRADE: 'D+30 Upgrade',
+}
+
+export const FOLLOWUP_TYPE_COLORS: Record<FollowUpType, string> = {
+  D1_CHECK: 'bg-blue-100 text-blue-700',
+  D7_FEEDBACK: 'bg-yellow-100 text-yellow-700',
+  D30_UPGRADE: 'bg-purple-100 text-purple-700',
+}
+
+export const FOLLOWUP_STATUS_LABELS: Record<FollowUpStatus, string> = {
+  PENDING: 'Pendente',
+  SENT: 'Enviado',
+  FAILED: 'Falhou',
+  COMPLETED: 'Concluído',
+  SKIPPED: 'Pulado',
+}
+
+export const FOLLOWUP_STATUS_COLORS: Record<FollowUpStatus, string> = {
+  PENDING: 'bg-orange-100 text-orange-700',
+  SENT: 'bg-blue-100 text-blue-700',
+  FAILED: 'bg-red-100 text-red-700',
+  COMPLETED: 'bg-green-100 text-green-700',
+  SKIPPED: 'bg-gray-100 text-gray-500',
+}
+
 export const STATUS_LABELS: Record<LeadStatus, string> = {
   NEW: 'Novo',
   CONTACTED: 'Contatado',

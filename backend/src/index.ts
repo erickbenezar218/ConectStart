@@ -17,6 +17,8 @@ import pricingRouter from './routes/pricing'
 import uploadsRouter from './routes/uploads'
 import authRouter from './routes/auth'
 import usersRouter from './routes/users'
+import followUpsRouter from './routes/followUps'
+import { startCronJobs, stopCronJobs } from './services/cronService'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -53,6 +55,7 @@ app.post('/api/leads', createLead)
 // Protected: all other lead operations require auth
 app.use('/api/leads', authenticate, leadsRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/follow-ups', followUpsRouter)
 
 app.use(notFound)
 app.use(errorHandler)
@@ -64,10 +67,12 @@ async function bootstrap() {
     console.log(`\n🚀 ConectFlow API running`)
     console.log(`   http://localhost:${PORT}`)
     console.log(`   Health: http://localhost:${PORT}/health\n`)
+    startCronJobs()
   })
 
   const shutdown = async (signal: string) => {
     console.log(`\n${signal} received. Shutting down gracefully...`)
+    stopCronJobs()
     server.close(async () => {
       await disconnectDatabase()
       console.log('Server closed.')

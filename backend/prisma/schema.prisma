@@ -119,6 +119,7 @@ model Lead {
   source     String?  @default("web")
 
   statusHistory StatusHistory[]
+  followUps     FollowUp[]
 
   @@index([status])
   @@index([neighborhood])
@@ -135,6 +136,37 @@ model StatusHistory {
   changedBy String?
   createdAt DateTime   @default(now())
 
+  @@index([leadId])
+}
+
+enum FollowUpType {
+  D1_CHECK
+  D7_FEEDBACK
+  D30_UPGRADE
+}
+
+enum FollowUpStatus {
+  PENDING
+  SENT
+  FAILED
+  COMPLETED
+  SKIPPED
+}
+
+model FollowUp {
+  id           String         @id @default(cuid())
+  leadId       String
+  lead         Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type         FollowUpType
+  scheduledFor DateTime
+  sentAt       DateTime?
+  status       FollowUpStatus @default(PENDING)
+  responseNote String?
+  retryCount   Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([status, scheduledFor])
   @@index([leadId])
 }
 

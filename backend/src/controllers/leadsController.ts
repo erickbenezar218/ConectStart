@@ -5,6 +5,7 @@ import whatsappService from '../services/whatsappService'
 import erpService from '../services/erpService'
 import { AppError } from '../middleware/errorHandler'
 import { CreateLeadDTO, UpdateLeadStatusDTO, LeadStatus } from '../types'
+import { scheduleFollowUpsForLead } from '../services/followUpService'
 
 export async function createLead(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -189,6 +190,11 @@ export async function updateLeadStatus(
         },
       }),
     ])
+
+    // Agendar follow-ups automáticos ao instalar
+    if (status === 'INSTALLED') {
+      scheduleFollowUpsForLead(id, updatedLead.installedAt || new Date()).catch(console.error)
+    }
 
     // WhatsApp notifications on key status changes
     if (status === 'SCHEDULED') {

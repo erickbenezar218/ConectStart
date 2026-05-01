@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
-import { authApi } from '@/lib/api'
+import { authApi, followUpsApi } from '@/lib/api'
 import {
   LayoutDashboard, Users, Kanban, UserCog,
-  LogOut, ExternalLink, ChevronRight,
+  LogOut, ExternalLink, ChevronRight, MessageCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +19,7 @@ const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/kanban', label: 'Pipeline', icon: Kanban },
+  { href: '/pos-venda', label: 'Pós-Venda', icon: MessageCircle },
   { href: '/usuarios', label: 'Usuários', icon: UserCog, adminOnly: true },
 ]
 
@@ -26,6 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
   const { user, token, loadFromStorage, clearAuth, isLoading } = useAuthStore()
+  const [followUpDue, setFollowUpDue] = useState(0)
 
   useEffect(() => {
     loadFromStorage()
@@ -36,6 +38,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/login')
     }
   }, [isLoading, token, router])
+
+  useEffect(() => {
+    if (!token) return
+    followUpsApi.getStats().then((s) => setFollowUpDue(s.dueToday)).catch(() => {})
+  }, [token])
 
   const handleLogout = async () => {
     try { await authApi.logout() } catch { /* ignore */ }
@@ -67,6 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
           {NAV.filter((item) => !item.adminOnly || user.role === 'ADMIN').map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            const badge = href === '/pos-venda' && followUpDue > 0 ? followUpDue : 0
             return (
               <Link
                 key={href}
@@ -80,6 +88,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1">{label}</span>
+                {badge > 0 && !active && (
+                  <span className="text-xs bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full leading-none">
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
                 {active && <ChevronRight className="w-3 h-3 opacity-60" />}
               </Link>
             )

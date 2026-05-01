@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Lead, Plan, BillingDate, SGPPop, PricingResult, KanbanColumn, LeadStatus } from '@/types'
+import { Lead, Plan, BillingDate, SGPPop, PricingResult, KanbanColumn, LeadStatus, FollowUp, FollowUpStats, FollowUpStatus } from '@/types'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
@@ -161,6 +161,29 @@ export interface DashboardStats {
     createdAt: string
     contractType: string
   }[]
+}
+
+// --- Follow-ups ---
+export const followUpsApi = {
+  list: async (params?: { status?: FollowUpStatus; type?: string; leadId?: string; page?: number; limit?: number }) => {
+    const { data: res } = await api.get('/follow-ups', { params })
+    return res as { data: FollowUp[]; meta: { total: number; page: number; limit: number; pages: number } }
+  },
+
+  getStats: async () => {
+    const { data: res } = await api.get('/follow-ups/stats')
+    return res.data as FollowUpStats
+  },
+
+  updateStatus: async (id: string, status: FollowUpStatus, responseNote?: string) => {
+    const { data: res } = await api.patch(`/follow-ups/${id}/status`, { status, responseNote })
+    return res.data as FollowUp
+  },
+
+  triggerManual: async () => {
+    const { data: res } = await api.post('/follow-ups/trigger')
+    return res
+  },
 }
 
 // --- Plans ---
