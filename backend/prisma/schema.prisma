@@ -120,6 +120,7 @@ model Lead {
 
   statusHistory StatusHistory[]
   followUps     FollowUp[]
+  contract      Contract?
 
   @@index([status])
   @@index([neighborhood])
@@ -168,6 +169,45 @@ model FollowUp {
 
   @@index([status, scheduledFor])
   @@index([leadId])
+}
+
+enum ContractStatus {
+  PENDING
+  SENT
+  SIGNED
+  EXPIRED
+  CANCELLED
+}
+
+model Contract {
+  id                    String         @id @default(cuid())
+  leadId                String         @unique
+  lead                  Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  status                ContractStatus @default(PENDING)
+  signatureToken        String         @unique
+  tokenExpiresAt        DateTime
+
+  docxFilename          String?
+  pdfFilename           String?
+  signedPdfFilename     String?
+
+  sentAt                DateTime?
+  sentBy                String?
+
+  signedAt              DateTime?
+  signerIp              String?
+  signerUserAgent       String?
+  selfieFilename        String?
+  documentPhotoFilename String?
+  signatureHash         String?
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([leadId])
+  @@index([signatureToken])
+  @@index([status])
 }
 
 model NeighborhoodRule {

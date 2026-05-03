@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lead, LeadStatus, STATUS_LABELS, STATUS_COLORS } from '@/types'
-import { leadsApi } from '@/lib/api'
+import { Lead, LeadStatus, STATUS_LABELS, STATUS_COLORS, Contract, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS } from '@/types'
+import { leadsApi, contractsApi } from '@/lib/api'
 import {
   ArrowLeft, MapPin, Phone, Mail, Calendar, Wifi, FileText,
   DollarSign, User, Clock, CheckCircle, Loader2, Camera, Navigation,
-  Pencil, Trash2, Copy, Check,
+  Pencil, Trash2, Copy, Check, FileSignature, Send, Eye, RefreshCw, CheckCircle2,
 } from 'lucide-react'
 import { formatDate, formatDateTime, formatCurrency, formatCPF, formatPhone } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -35,6 +35,9 @@ export default function LeadDetails({ leadId }: { leadId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [copiedCoords, setCopiedCoords] = useState(false)
+  const [contract, setContract] = useState<Contract | null>(null)
+  const [contractLoading, setContractLoading] = useState(false)
+  const [contractAction, setContractAction] = useState<string | null>(null)
 
   useEffect(() => {
     leadsApi.getById(leadId).then((data) => {
@@ -42,7 +45,32 @@ export default function LeadDetails({ leadId }: { leadId: string }) {
       setNewStatus(data.status)
       setLoading(false)
     })
+    contractsApi.getByLeadId(leadId).then(setContract).catch(() => {})
   }, [leadId])
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'
+
+  const handleGenerateContract = async () => {
+    if (!lead) return
+    setContractLoading(true)
+    try {
+      const c = await contractsApi.generate(lead.id)
+      setContract(c)
+    } finally {
+      setContractLoading(false)
+    }
+  }
+
+  const handleDispatchContract = async () => {
+    if (!contract) return
+    setContractAction('dispatch')
+    try {
+      const c = await contractsApi.dispatch(contract.id)
+      setContract(c)
+    } finally {
+      setContractAction(null)
+    }
+  }
 
   const handleUpdateStatus = async () => {
     if (!lead || !newStatus || newStatus === lead.status) return
@@ -329,6 +357,86 @@ export default function LeadDetails({ leadId }: { leadId: string }) {
                     </div>
                   )}
                 </dl>
+              </section>
+
+              {/* Contract */}
+              <section className="bg-white rounded-xl border p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <FileSignature className="w-4 h-4 text-primary" />
+                    <h2 className="font-semibold text-sm text-gray-900">Assinatura Digital</h2>
+                  </div>
+                  {contract && (
+                    <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full', CONTRACT_STATUS_COLORS[contract.status])}>
+                      {CONTRACT_STATUS_LABELS[contract.status]}
+                    </span>
+                  )}
+                </div>
+
+                {contract ? (
+                  <div className="space-y-2">
+                    {contract.signedAt && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Assinado em {new Date(contract.signedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {contract.pdfFilename && (
+                        <a
+                          href={`${API_URL}/contracts/${contract.pdfFilename}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs border rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Ver PDF
+                        </a>
+                      )}
+                      {contract.signedPdfFilename && (
+                        <a
+                          href={`${API_URL}/contracts/${contract.signedPdfFilename}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs border border-green-200 rounded-lg px-2.5 py-1.5 text-green-700 hover:bg-green-50"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Comprovante
+                        </a>
+                      )}
+                      {contract.status !== 'SIGNED' && (
+                        <button
+                          onClick={handleDispatchContract}
+                          disabled={contractAction === 'dispatch'}
+                          className="flex items-center gap-1.5 text-xs bg-green-600 text-white rounded-lg px-2.5 py-1.5 hover:bg-green-700 disabled:opacity-40"
+                        >
+                          {contractAction === 'dispatch' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                          Disparar WhatsApp
+                        </button>
+                      )}
+                      {contract.status !== 'SIGNED' && (
+                        <button
+                          onClick={handleGenerateContract}
+                          disabled={contractLoading}
+                          className="flex items-center gap-1.5 text-xs border rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                        >
+                          {contractLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Regenerar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-3">Nenhum contrato gerado ainda</p>
+                    <button
+                      onClick={handleGenerateContract}
+                      disabled={contractLoading}
+                      className="w-full flex items-center justify-center gap-2 text-sm bg-primary text-white rounded-lg py-2 hover:bg-primary/90 disabled:opacity-40"
+                    >
+                      {contractLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSignature className="w-4 h-4" />}
+                      Gerar Contrato
+                    </button>
+                  </div>
+                )}
               </section>
 
               {/* Pricing */}

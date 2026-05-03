@@ -1,0 +1,4 @@
+# Ignora o template de contrato (documento confidencial da empresa)
+# Faça upload manual via EasyPanel → File Manager → /app/templates/
+*.docx
+*.doc

@@ -262,3 +262,53 @@ export const STATUS_COLORS: Record<LeadStatus, string> = {
   INSTALLED: 'bg-green-100 text-green-700',
   CANCELLED: 'bg-red-100 text-red-700',
 }
+
+// --- Contracts ---
+
+export type ContractStatus = 'PENDING' | 'SENT' | 'SIGNED' | 'EXPIRED' | 'CANCELLED'
+
+export interface Contract {
+  id: string
+  leadId: string
+  lead?: {
+    id: string
+    fullName: string
+    cpf: string
+    phone: string
+    planName?: string
+    planPrice?: number
+    neighborhood: string
+    status: LeadStatus
+  }
+  status: ContractStatus
+  signatureToken: string
+  tokenExpiresAt: string
+  docxFilename?: string
+  pdfFilename?: string
+  signedPdfFilename?: string
+  sentAt?: string
+  sentBy?: string
+  signedAt?: string
+  signerIp?: string
+  selfieFilename?: string
+  documentPhotoFilename?: string
+  signatureHash?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
+  PENDING: 'Pendente',
+  SENT: 'Enviado',
+  SIGNED: 'Assinado',
+  EXPIRED: 'Expirado',
+  CANCELLED: 'Cancelado',
+}
+
+export const CONTRACT_STATUS_COLORS: Record<ContractStatus, string> = {
+  PENDING: 'bg-yellow-100 text-yellow-700',
+  SENT: 'bg-blue-100 text-blue-700',
+  SIGNED: 'bg-green-100 text-green-700',
+  EXPIRED: 'bg-gray-100 text-gray-500',
+  CANCELLED: 'bg-red-100 text-red-700',
+}

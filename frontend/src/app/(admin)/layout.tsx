@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { authApi, followUpsApi } from '@/lib/api'
 import {
   LayoutDashboard, Users, Kanban, UserCog,
-  LogOut, ExternalLink, ChevronRight, MessageCircle,
+  LogOut, ExternalLink, ChevronRight, MessageCircle, FileSignature,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +20,7 @@ const NAV = [
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/kanban', label: 'Pipeline', icon: Kanban },
   { href: '/pos-venda', label: 'Pós-Venda', icon: MessageCircle },
+  { href: '/contratos', label: 'Contratos', icon: FileSignature },
   { href: '/usuarios', label: 'Usuários', icon: UserCog, adminOnly: true },
 ]
 

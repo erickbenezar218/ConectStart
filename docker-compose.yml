@@ -20,28 +20,57 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: conectflow_api
     environment:
+      # --- Database ---
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/conectflow
+
+      # --- App ---
       PORT: 3001
       NODE_ENV: production
+      JWT_SECRET: change-this-to-a-strong-secret-in-production
+      CORS_ORIGIN: http://localhost:3000
+
+      # --- SGP ---
+      SGP_BASE_URL: https://sgp.conectstelecom.com.br/api/precadastro
+      SGP_APP: appprecadastro
+      SGP_TOKEN: 1ca74ff6-739d-48f5-aadb-e03f85d0edb6
+
+      # --- Uploads ---
+      UPLOAD_DIR: uploads
+      MAX_FILE_SIZE: 10485760
+
+      # --- URLs (ajuste para produção) ---
+      API_BASE_URL: http://localhost:3001
+      APP_BASE_URL: http://localhost:3000
+
+      # --- Módulo Pós-Venda (n8n webhook) ---
+      FOLLOWUP_WEBHOOK_URL: ''
+      FOLLOWUP_WEBHOOK_SECRET: ''
+
+      # --- Módulo Contratos (n8n webhook) ---
+      CONTRACT_WEBHOOK_URL: ''
+      CONTRACT_WEBHOOK_SECRET: ''
+
     ports:
       - '3001:3001'
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend/uploads:/app/uploads
+      - uploads_data:/app/uploads
+      - contracts_data:/app/contracts
+      - templates_data:/app/templates
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001/api
     container_name: conectflow_web
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
     ports:
       - '3000:3000'
     depends_on:
@@ -49,3 +78,6 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
+  contracts_data:
+  templates_data:

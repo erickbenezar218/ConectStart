@@ -18,6 +18,7 @@ import uploadsRouter from './routes/uploads'
 import authRouter from './routes/auth'
 import usersRouter from './routes/users'
 import followUpsRouter from './routes/followUps'
+import contractsRouter from './routes/contracts'
 import { startCronJobs, stopCronJobs } from './services/cronService'
 
 const app = express()
@@ -38,6 +39,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+app.use('/contracts', express.static(path.join(process.cwd(), 'contracts')))
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', version: '1.0.0', timestamp: new Date().toISOString() })
@@ -56,6 +58,7 @@ app.post('/api/leads', createLead)
 app.use('/api/leads', authenticate, leadsRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/follow-ups', followUpsRouter)
+app.use('/api/contracts', contractsRouter)
 
 app.use(notFound)
 app.use(errorHandler)

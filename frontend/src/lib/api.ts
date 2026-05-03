@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Lead, Plan, BillingDate, SGPPop, PricingResult, KanbanColumn, LeadStatus, FollowUp, FollowUpStats, FollowUpStatus } from '@/types'
+import { Lead, Plan, BillingDate, SGPPop, PricingResult, KanbanColumn, LeadStatus, FollowUp, FollowUpStats, FollowUpStatus, Contract, ContractStatus } from '@/types'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
@@ -213,6 +213,60 @@ export const pricingApi = {
   }) => {
     const { data: res } = await api.post('/pricing/calculate', params)
     return res.data as PricingResult
+  },
+}
+
+// --- Contracts ---
+export const contractsApi = {
+  generate: async (leadId: string) => {
+    const { data: res } = await api.post(`/contracts/generate/${leadId}`)
+    return res.data as Contract
+  },
+
+  list: async (params?: { status?: ContractStatus; page?: number; limit?: number }) => {
+    const { data: res } = await api.get('/contracts', { params })
+    return res as { data: Contract[]; meta: { total: number; page: number; limit: number; pages: number } }
+  },
+
+  getById: async (id: string) => {
+    const { data: res } = await api.get(`/contracts/${id}`)
+    return res.data as Contract
+  },
+
+  getByLeadId: async (leadId: string) => {
+    const { data: res } = await api.get(`/contracts/lead/${leadId}`)
+    return res.data as Contract
+  },
+
+  dispatch: async (id: string) => {
+    const { data: res } = await api.post(`/contracts/${id}/dispatch`)
+    return res.data as Contract
+  },
+
+  remove: async (id: string) => {
+    await api.delete(`/contracts/${id}`)
+  },
+
+  // Public (no auth)
+  getPublicInfo: async (token: string) => {
+    const { data: res } = await api.get(`/contracts/public/${token}`)
+    return res.data as {
+      contractId: string
+      status: ContractStatus
+      tokenExpiresAt: string
+      pdfUrl: string | null
+      lead: { fullName: string; cpf: string; planName?: string; planPrice?: number; planSpeed?: string; neighborhood: string; city: string; state: string }
+    }
+  },
+
+  submitSignature: async (token: string, selfie: File, documentPhoto: File) => {
+    const form = new FormData()
+    form.append('selfie', selfie)
+    form.append('documentPhoto', documentPhoto)
+    const { data: res } = await api.post(`/contracts/sign/${token}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data as { message: string; signedAt: string }
   },
 }
 

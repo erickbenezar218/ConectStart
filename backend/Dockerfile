@@ -24,7 +24,9 @@ COPY --from=builder /app/node_modules  ./node_modules
 COPY --from=builder /app/prisma        ./prisma
 COPY backend/package*.json ./
 
-RUN mkdir -p uploads
+RUN mkdir -p uploads contracts templates
+# Uncomment to enable automatic DOCX→PDF conversion via LibreOffice:
+# RUN apk add --no-cache libreoffice openjdk11-jre-headless fontconfig ttf-dejavu
 
 EXPOSE 3001
 
