@@ -22,19 +22,31 @@
             {
               "id": "cfg-01",
               "name": "EVOLUTION_URL",
-              "value": "https://SUA-EVOLUTION-API-URL-AQUI",
+              "value": "https://evolution.conectplusfibra.com.br",
               "type": "string"
             },
             {
               "id": "cfg-02",
               "name": "EVOLUTION_INSTANCE",
-              "value": "NOME-DA-SUA-INSTANCIA-AQUI",
+              "value": "cadastro",
               "type": "string"
             },
             {
               "id": "cfg-03",
               "name": "EVOLUTION_APIKEY",
-              "value": "SUA-API-KEY-AQUI",
+              "value": "490DE680E20D-4388-8A0C-9FA200E3EB26",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04",
+              "name": "wa_number",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-05",
+              "name": "wa_text",
+              "value": "={{ $json.message }}",
               "type": "string"
             }
           ]
@@ -42,7 +54,7 @@
         "options": {}
       },
       "id": "b1c2d3e4-0002-0002-0002-000000000002",
-      "name": "⚙️ Configurar Evolution API",
+      "name": "⚙️ Preparar Dados",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [460, 300]
@@ -50,23 +62,31 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $json.EVOLUTION_URL }}/message/sendText/{{ $json.EVOLUTION_INSTANCE }}",
+        "url": "={{ $json.EVOLUTION_URL + '/message/sendText/' + $json.EVOLUTION_INSTANCE }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
               "value": "={{ $json.EVOLUTION_APIKEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
             }
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $('Webhook ConectFlow').item.json.phone }}\",\n  \"text\": \"{{ $('Webhook ConectFlow').item.json.message }}\"\n}",
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.wa_number }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.wa_text }}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "b1c2d3e4-0003-0003-0003-000000000003",
@@ -82,14 +102,14 @@
       "main": [
         [
           {
-            "node": "⚙️ Configurar Evolution API",
+            "node": "⚙️ Preparar Dados",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "⚙️ Configurar Evolution API": {
+    "⚙️ Preparar Dados": {
       "main": [
         [
           {
@@ -105,7 +125,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "contratos-v1",
+  "versionId": "contratos-v5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": ""

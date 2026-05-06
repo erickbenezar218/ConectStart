@@ -1,9 +1,5 @@
-import axios from 'axios'
 import { prisma } from '../config/database'
-
-const FOLLOWUP_WEBHOOK_URL = process.env.FOLLOWUP_WEBHOOK_URL || ''
-const FOLLOWUP_WEBHOOK_SECRET = process.env.FOLLOWUP_WEBHOOK_SECRET || ''
-const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3001}`
+import { sendWhatsApp } from './evolutionService'
 
 export async function scheduleFollowUpsForLead(leadId: string, installedAt: Date): Promise<void> {
   const existing = await prisma.followUp.count({ where: { leadId } })
@@ -67,57 +63,22 @@ export async function processDueFollowUps(): Promise<void> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendWebhook(followUp: any): Promise<void> {
   const message = buildMessage(followUp.type, followUp.lead.fullName, followUp.lead.planName)
-  const callbackUrl = `${API_BASE_URL}/api/follow-ups/webhook/callback`
-
-  if (!FOLLOWUP_WEBHOOK_URL) {
-    console.warn(`[FollowUp] FOLLOWUP_WEBHOOK_URL não configurado — marcando ${followUp.type} como SENT sem envio`)
-    await prisma.followUp.update({
-      where: { id: followUp.id },
-      data: { status: 'SENT', sentAt: new Date() },
-    })
-    return
-  }
 
   try {
-    await axios.post(
-      FOLLOWUP_WEBHOOK_URL,
-      {
-        followUpId: followUp.id,
-        type: followUp.type,
-        lead: {
-          id: followUp.lead.id,
-          fullName: followUp.lead.fullName,
-          phone: formatPhone(followUp.lead.phone),
-          planName: followUp.lead.planName,
-          neighborhood: followUp.lead.neighborhood,
-          installedAt: followUp.lead.installedAt,
-        },
-        message,
-        callbackUrl,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(FOLLOWUP_WEBHOOK_SECRET && { 'X-Webhook-Secret': FOLLOWUP_WEBHOOK_SECRET }),
-        },
-        timeout: 10000,
-      }
-    )
+    const sent = await sendWhatsApp(followUp.lead.phone, message)
 
     await prisma.followUp.update({
       where: { id: followUp.id },
-      data: { status: 'SENT', sentAt: new Date() },
+      data: { status: sent ? 'SENT' : 'FAILED', sentAt: sent ? new Date() : undefined },
     })
 
-    console.log(`[FollowUp] ✓ ${followUp.type} enviado para lead ${followUp.leadId}`)
+    if (sent) console.log(`[FollowUp] ✓ ${followUp.type} enviado para lead ${followUp.leadId}`)
+    else console.warn(`[FollowUp] Evolution API não configurada — ${followUp.type} marcado como FAILED`)
   } catch (error) {
     const retryCount = followUp.retryCount + 1
     await prisma.followUp.update({
       where: { id: followUp.id },
-      data: {
-        retryCount,
-        status: retryCount >= 3 ? 'FAILED' : 'PENDING',
-      },
+      data: { retryCount, status: retryCount >= 3 ? 'FAILED' : 'PENDING' },
     })
     console.error(`[FollowUp] ✗ Falha em ${followUp.type} para lead ${followUp.leadId} (tentativa ${retryCount}):`, error)
   }
@@ -157,7 +118,3 @@ export function buildMessage(type: string, fullName: string, planName?: string |
   return `Olá ${firstName}! Aqui é da *ConectPlus Fibra*. Como podemos te ajudar?`
 }
 
-function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  return digits.startsWith('55') ? digits : `55${digits}`
-}

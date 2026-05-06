@@ -17,56 +17,42 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "cfg-01",
-              "name": "EVOLUTION_URL",
-              "value": "https://SUA-EVOLUTION-API-URL-AQUI",
-              "type": "string"
-            },
-            {
-              "id": "cfg-02",
-              "name": "EVOLUTION_INSTANCE",
-              "value": "NOME-DA-SUA-INSTANCIA-AQUI",
-              "type": "string"
-            },
-            {
-              "id": "cfg-03",
-              "name": "EVOLUTION_APIKEY",
-              "value": "SUA-API-KEY-AQUI",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "const d = $input.first().json;\n\nreturn [{\n  json: {\n    EVOLUTION_URL: 'https://evolution.conectplusfibra.com.br',\n    EVOLUTION_INSTANCE: 'cadastro',\n    EVOLUTION_APIKEY: '490DE680E20D-4388-8A0C-9FA200E3EB26',\n    wa_number: String(d.lead?.phone || ''),\n    wa_text: String(d.message || ''),\n    followUpId: String(d.followUpId || ''),\n    callbackUrl: String(d.callbackUrl || '')\n  }\n}];"
       },
       "id": "a1b2c3d4-0002-0002-0002-000000000002",
-      "name": "⚙️ Configurar Evolution API",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "name": "⚙️ Preparar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [460, 300]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $json.EVOLUTION_URL }}/message/sendText/{{ $json.EVOLUTION_INSTANCE }}",
+        "url": "={{ $json.EVOLUTION_URL + '/message/sendText/' + $json.EVOLUTION_INSTANCE }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
               "value": "={{ $json.EVOLUTION_APIKEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
             }
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $('Webhook ConectFlow').item.json.lead.phone }}\",\n  \"text\": \"{{ $('Webhook ConectFlow').item.json.message }}\"\n}",
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.wa_number }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.wa_text }}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "a1b2c3d4-0003-0003-0003-000000000003",
@@ -78,19 +64,22 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Webhook ConectFlow').item.json.callbackUrl }}",
-        "sendHeaders": true,
-        "headerParameters": {
+        "url": "={{ $json.callbackUrl }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
           "parameters": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "name": "followUpId",
+              "value": "={{ $json.followUpId }}"
+            },
+            {
+              "name": "success",
+              "value": "true"
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"followUpId\": \"{{ $('Webhook ConectFlow').item.json.followUpId }}\",\n  \"success\": true\n}",
         "options": {
           "timeout": 5000
         }
@@ -106,49 +95,24 @@
   "connections": {
     "Webhook ConectFlow": {
       "main": [
-        [
-          {
-            "node": "⚙️ Configurar Evolution API",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "⚙️ Preparar Dados", "type": "main", "index": 0 }]
       ]
     },
-    "⚙️ Configurar Evolution API": {
+    "⚙️ Preparar Dados": {
       "main": [
-        [
-          {
-            "node": "Enviar WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]
       ]
     },
     "Enviar WhatsApp": {
       "main": [
-        [
-          {
-            "node": "Callback ConectFlow",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Callback ConectFlow", "type": "main", "index": 0 }]
       ]
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "followup-v1",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": ""
-  },
+  "settings": { "executionOrder": "v1" },
+  "versionId": "followup-v6",
+  "meta": { "templateCredsSetupCompleted": true, "instanceId": "" },
   "id": "conectflow-followup-001",
-  "tags": [
-    { "createdAt": "2026-05-03", "updatedAt": "2026-05-03", "id": "tag-001", "name": "ConectFlow" }
-  ]
+  "tags": [{ "createdAt": "2026-05-03", "updatedAt": "2026-05-03", "id": "tag-001", "name": "ConectFlow" }]
 }

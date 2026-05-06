@@ -2,8 +2,8 @@ import { Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
 import multer from 'multer'
-import axios from 'axios'
 import { prisma } from '../config/database'
+import { sendWhatsApp } from '../services/evolutionService'
 import {
   buildContractData,
   fillTemplate,
@@ -13,10 +13,7 @@ import {
 } from '../services/documentService'
 
 const CONTRACTS_DIR = path.join(process.cwd(), 'contracts')
-const CONTRACT_WEBHOOK_URL = process.env.CONTRACT_WEBHOOK_URL || ''
-const CONTRACT_WEBHOOK_SECRET = process.env.CONTRACT_WEBHOOK_SECRET || ''
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:3000'
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001'
 
 // 7-day token expiry
 const TOKEN_TTL_DAYS = 7
@@ -202,43 +199,15 @@ export async function dispatch(req: Request, res: Response) {
     if (contract.status === 'SIGNED') return fail(res, 'Contrato ja assinado', 400)
 
     const signingUrl = `${APP_BASE_URL}/assinar/${contract.signatureToken}`
-    const pdfUrl = contract.pdfFilename ? `${API_BASE_URL}/contracts/${contract.pdfFilename}` : null
-
     const lead = contract.lead
-    const phone = lead.phone.replace(/\D/g, '')
-    const formattedPhone = phone.startsWith('55') ? phone : `55${phone}`
 
     const message =
-      `Ola ${lead.fullName.split(' ')[0]}! 📝\n\n` +
-      `Seu contrato com a *ConectPlus Fibra* esta pronto para assinatura.\n\n` +
+      `Olá ${lead.fullName.split(' ')[0]}! 📝\n\n` +
+      `Seu contrato com a *ConectPlus Fibra* está pronto para assinatura.\n\n` +
       `Acesse o link abaixo para visualizar e assinar eletronicamente:\n${signingUrl}\n\n` +
       `_O link expira em ${TOKEN_TTL_DAYS} dias._`
 
-    if (CONTRACT_WEBHOOK_URL) {
-      await axios.post(
-        CONTRACT_WEBHOOK_URL,
-        {
-          contractId: contract.id,
-          leadId: lead.id,
-          fullName: lead.fullName,
-          phone: formattedPhone,
-          signingUrl,
-          pdfUrl,
-          planName: lead.planName,
-          planPrice: lead.planPrice,
-          message,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(CONTRACT_WEBHOOK_SECRET && { 'X-Webhook-Secret': CONTRACT_WEBHOOK_SECRET }),
-          },
-          timeout: 10000,
-        }
-      )
-    } else {
-      console.warn('[Contracts] CONTRACT_WEBHOOK_URL nao configurado — disparo simulado')
-    }
+    await sendWhatsApp(lead.phone, message)
 
     const updated = await prisma.contract.update({
       where: { id },
