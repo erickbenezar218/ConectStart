@@ -13,7 +13,31 @@ import {
 } from '../services/documentService'
 
 const CONTRACTS_DIR = path.join(process.cwd(), 'contracts')
+const TEMPLATES_DIR = path.join(process.cwd(), 'templates')
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:3000'
+
+// --- Template upload multer ---
+export const templateUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      if (!fs.existsSync(TEMPLATES_DIR)) fs.mkdirSync(TEMPLATES_DIR, { recursive: true })
+      cb(null, TEMPLATES_DIR)
+    },
+    filename: (_req, _file, cb) => cb(null, 'contrato.docx'),
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+    ]
+    if (allowed.includes(file.mimetype) || file.originalname.endsWith('.docx')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Apenas arquivos .docx são aceitos'))
+    }
+  },
+})
 
 // 7-day token expiry
 const TOKEN_TTL_DAYS = 7
@@ -355,6 +379,33 @@ export async function remove(req: Request, res: Response) {
     return ok(res, { deleted: true })
   } catch {
     return fail(res, 'Erro ao excluir contrato', 500)
+  }
+}
+
+export function getTemplateInfo(req: Request, res: Response) {
+  const templatePath = path.join(TEMPLATES_DIR, 'contrato.docx')
+  if (!fs.existsSync(templatePath)) {
+    return ok(res, { exists: false })
+  }
+  const stat = fs.statSync(templatePath)
+  return ok(res, {
+    exists: true,
+    size: stat.size,
+    updatedAt: stat.mtime,
+  })
+}
+
+export async function uploadTemplate(req: Request, res: Response) {
+  try {
+    if (!req.file) return fail(res, 'Nenhum arquivo enviado', 400)
+    return ok(res, {
+      uploaded: true,
+      filename: req.file.filename,
+      size: req.file.size,
+    })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro ao salvar template'
+    return fail(res, msg, 500)
   }
 }
 

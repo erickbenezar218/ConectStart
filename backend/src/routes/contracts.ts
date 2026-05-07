@@ -10,6 +10,9 @@ import {
   submitSignature,
   signatureUpload,
   remove,
+  getTemplateInfo,
+  uploadTemplate,
+  templateUpload,
 } from '../controllers/contractsController'
 
 const router = Router()
@@ -27,6 +30,8 @@ router.post(
 
 // --- Protected routes ---
 router.use(authenticate)
+router.get('/template/info', getTemplateInfo)
+router.post('/template/upload', templateUpload.single('template'), uploadTemplate)
 router.get('/', list)
 router.get('/lead/:leadId', getByLeadId)
 router.get('/:id', getById)

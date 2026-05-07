@@ -9,7 +9,9 @@ import {
 import {
   FileText, Send, Eye, RefreshCw, Loader2, Trash2,
   ChevronLeft, ChevronRight, CheckCircle2, Clock, AlertCircle, XCircle, FileCheck,
+  Upload, Settings, FileCheck2,
 } from 'lucide-react'
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'
@@ -51,6 +53,9 @@ export default function ContratosPage() {
   const [page, setPage] = useState(1)
   const [actionId, setActionId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [templateInfo, setTemplateInfo] = useState<{ exists: boolean; size?: number; updatedAt?: string } | null>(null)
+  const [uploadingTemplate, setUploadingTemplate] = useState(false)
+  const templateInputRef = useRef<HTMLInputElement>(null)
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg })
@@ -60,15 +65,36 @@ export default function ContratosPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await contractsApi.list({ status: activeTab || undefined, page, limit: 20 })
-      setContracts(res.data)
-      setMeta(res.meta)
+      const [listRes, tplRes] = await Promise.all([
+        contractsApi.list({ status: activeTab || undefined, page, limit: 20 }),
+        contractsApi.getTemplateInfo(),
+      ])
+      setContracts(listRes.data)
+      setMeta(listRes.meta)
+      setTemplateInfo(tplRes)
     } catch {
       showToast('error', 'Erro ao carregar contratos')
     } finally {
       setLoading(false)
     }
   }, [activeTab, page])
+
+  const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingTemplate(true)
+    try {
+      await contractsApi.uploadTemplate(file)
+      showToast('success', 'Template enviado com sucesso!')
+      const info = await contractsApi.getTemplateInfo()
+      setTemplateInfo(info)
+    } catch (err: unknown) {
+      showToast('error', err instanceof Error ? err.message : 'Erro ao enviar template')
+    } finally {
+      setUploadingTemplate(false)
+      if (templateInputRef.current) templateInputRef.current.value = ''
+    }
+  }
 
   useEffect(() => { fetchData() }, [fetchData])
   useEffect(() => { setPage(1) }, [activeTab])
@@ -335,6 +361,69 @@ export default function ContratosPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Template config */}
+      <div className="mt-4 bg-white rounded-xl border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-gray-500" />
+            <h2 className="text-sm font-semibold text-gray-800">Template do Contrato (.docx)</h2>
+          </div>
+          {templateInfo?.exists && (
+            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+              <FileCheck2 className="w-3.5 h-3.5" />
+              Template ativo
+            </span>
+          )}
+        </div>
+
+        {templateInfo?.exists ? (
+          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-100 rounded-lg mb-3">
+            <div className="text-sm">
+              <p className="font-medium text-green-800">contrato.docx</p>
+              <p className="text-xs text-green-600 mt-0.5">
+                {templateInfo.size ? `${(templateInfo.size / 1024).toFixed(1)} KB` : ''}
+                {templateInfo.updatedAt ? ` · Atualizado em ${new Date(templateInfo.updatedAt).toLocaleDateString('pt-BR')}` : ''}
+              </p>
+            </div>
+            <button
+              onClick={() => templateInputRef.current?.click()}
+              disabled={uploadingTemplate}
+              className="flex items-center gap-1.5 text-xs border border-green-300 text-green-700 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {uploadingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              Substituir
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-100 rounded-lg mb-3">
+            <div className="text-sm">
+              <p className="font-medium text-orange-800">Nenhum template carregado</p>
+              <p className="text-xs text-orange-600 mt-0.5">Faça upload do arquivo .docx com os placeholders</p>
+            </div>
+            <button
+              onClick={() => templateInputRef.current?.click()}
+              disabled={uploadingTemplate}
+              className="flex items-center gap-1.5 text-xs bg-orange-500 text-white hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {uploadingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              Enviar template
+            </button>
+          </div>
+        )}
+
+        <input
+          ref={templateInputRef}
+          type="file"
+          accept=".docx"
+          className="hidden"
+          onChange={handleTemplateUpload}
+        />
+
+        <p className="text-xs text-gray-400">
+          Placeholders suportados: <span className="font-mono">CLIENTE_NOME, CLIENTE_CPFCNPJ, PLANO_VELOCIDADE, PLANO_VALOR, SERVICO_ENDERECO, COBRANCA_VENCIMENTO</span> e outros.
+        </p>
       </div>
 
       {/* Info box */}

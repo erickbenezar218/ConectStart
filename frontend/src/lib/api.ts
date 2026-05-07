@@ -259,6 +259,20 @@ export const contractsApi = {
     }
   },
 
+  getTemplateInfo: async () => {
+    const { data: res } = await api.get('/contracts/template/info')
+    return res.data as { exists: boolean; size?: number; updatedAt?: string }
+  },
+
+  uploadTemplate: async (file: File) => {
+    const form = new FormData()
+    form.append('template', file)
+    const { data: res } = await api.post('/contracts/template/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data as { uploaded: boolean; filename: string; size: number }
+  },
+
   submitSignature: async (token: string, selfie: File, documentPhoto: File) => {
     const form = new FormData()
     form.append('selfie', selfie)
