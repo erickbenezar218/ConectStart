@@ -273,10 +273,10 @@ export default function ContratosPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        {/* Preview PDF */}
-                        {contract.pdfFilename && (
+                        {/* Preview contrato */}
+                        {(contract.docxFilename || contract.pdfFilename) && (
                           <a
-                            href={`${API_URL}/contracts/${contract.pdfFilename}`}
+                            href={`${API_URL}/api/contracts/${contract.id}/preview`}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Visualizar contrato"

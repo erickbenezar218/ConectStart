@@ -382,14 +382,14 @@ export default function LeadDetails({ leadId }: { leadId: string }) {
                       </p>
                     )}
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {contract.pdfFilename && (
+                      {(contract.docxFilename || contract.pdfFilename) && (
                         <a
-                          href={`${API_URL}/contracts/${contract.pdfFilename}`}
+                          href={`${API_URL}/api/contracts/${contract.id}/preview`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-xs border rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Ver PDF
+                          <Eye className="w-3.5 h-3.5" /> Visualizar
                         </a>
                       )}
                       {contract.signedPdfFilename && (

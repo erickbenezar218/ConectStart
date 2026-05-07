@@ -382,6 +382,64 @@ export async function remove(req: Request, res: Response) {
   }
 }
 
+export async function previewContract(req: Request, res: Response) {
+  try {
+    const contract = await prisma.contract.findUnique({ where: { id: req.params.id } })
+    if (!contract) return fail(res, 'Contrato nao encontrado', 404)
+
+    // prefer PDF if available
+    if (contract.pdfFilename) {
+      const pdfPath = path.join(CONTRACTS_DIR, contract.pdfFilename)
+      if (fs.existsSync(pdfPath)) {
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', 'inline; filename="contrato.pdf"')
+        return res.send(fs.readFileSync(pdfPath))
+      }
+    }
+
+    // fallback: convert DOCX to HTML with mammoth
+    if (!contract.docxFilename) return fail(res, 'Contrato ainda nao gerado', 404)
+    const docxPath = path.join(CONTRACTS_DIR, contract.docxFilename)
+    if (!fs.existsSync(docxPath)) return fail(res, 'Arquivo nao encontrado', 404)
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mammoth = require('mammoth')
+    const result = await mammoth.convertToHtml({ path: docxPath })
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contrato</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; background: #f5f5f5; padding: 20px; }
+    .page { max-width: 210mm; margin: 0 auto; background: #fff; padding: 20mm 25mm; box-shadow: 0 2px 8px rgba(0,0,0,.12); min-height: 297mm; }
+    p { margin-bottom: 8px; line-height: 1.6; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    td, th { border: 1px solid #ccc; padding: 4px 8px; font-size: 10pt; }
+    h1, h2, h3 { margin-bottom: 10px; }
+    strong { font-weight: bold; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; padding: 15mm 20mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">${result.value}</div>
+</body>
+</html>`
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    return res.send(html)
+  } catch (err) {
+    console.error('[Contracts] preview error:', err)
+    return fail(res, 'Erro ao gerar preview', 500)
+  }
+}
+
 export function getTemplateInfo(req: Request, res: Response) {
   const templatePath = path.join(TEMPLATES_DIR, 'contrato.docx')
   if (!fs.existsSync(templatePath)) {

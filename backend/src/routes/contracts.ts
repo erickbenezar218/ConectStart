@@ -13,6 +13,7 @@ import {
   getTemplateInfo,
   uploadTemplate,
   templateUpload,
+  previewContract,
 } from '../controllers/contractsController'
 
 const router = Router()
@@ -34,6 +35,7 @@ router.get('/template/info', getTemplateInfo)
 router.post('/template/upload', templateUpload.single('template'), uploadTemplate)
 router.get('/', list)
 router.get('/lead/:leadId', getByLeadId)
+router.get('/:id/preview', previewContract)
 router.get('/:id', getById)
 router.post('/generate/:leadId', generate)
 router.post('/:id/dispatch', dispatch)
