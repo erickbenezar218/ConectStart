@@ -48,7 +48,7 @@ export default function LeadDetails({ leadId }: { leadId: string }) {
     contractsApi.getByLeadId(leadId).then(setContract).catch(() => {})
   }, [leadId])
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'
+  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:3001'
 
   const handleGenerateContract = async () => {
     if (!lead) return
