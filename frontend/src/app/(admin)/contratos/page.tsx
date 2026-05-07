@@ -276,7 +276,7 @@ export default function ContratosPage() {
                         {/* Preview contrato */}
                         {(contract.docxFilename || contract.pdfFilename) && (
                           <a
-                            href={`${API_URL}/api/contracts/${contract.id}/preview`}
+                            href={`${API_URL}/api/contracts/${contract.id}/preview?token=${typeof window !== 'undefined' ? localStorage.getItem('cf_token') : ''}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Visualizar contrato"

@@ -384,7 +384,7 @@ export default function LeadDetails({ leadId }: { leadId: string }) {
                     <div className="flex flex-wrap gap-2 pt-1">
                       {(contract.docxFilename || contract.pdfFilename) && (
                         <a
-                          href={`${API_URL}/api/contracts/${contract.id}/preview`}
+                          href={`${API_URL}/api/contracts/${contract.id}/preview?token=${typeof window !== 'undefined' ? localStorage.getItem('cf_token') : ''}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-xs border rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50"

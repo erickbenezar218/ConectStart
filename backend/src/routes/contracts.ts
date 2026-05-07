@@ -35,7 +35,13 @@ router.get('/template/info', getTemplateInfo)
 router.post('/template/upload', templateUpload.single('template'), uploadTemplate)
 router.get('/', list)
 router.get('/lead/:leadId', getByLeadId)
-router.get('/:id/preview', previewContract)
+router.get('/:id/preview', (req, res, next) => {
+  // allow token via query string so browser can open in new tab
+  if (!req.headers.authorization && req.query.token) {
+    req.headers.authorization = `Bearer ${req.query.token}`
+  }
+  next()
+}, authenticate, previewContract)
 router.get('/:id', getById)
 router.post('/generate/:leadId', generate)
 router.post('/:id/dispatch', dispatch)
